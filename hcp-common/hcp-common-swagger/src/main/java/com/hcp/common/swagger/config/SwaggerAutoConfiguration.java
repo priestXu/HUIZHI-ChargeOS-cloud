@@ -3,32 +3,32 @@ package com.hcp.common.swagger.config;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.service.ApiKey;
-import springfox.documentation.service.AuthorizationScope;
-import springfox.documentation.service.Contact;
-import springfox.documentation.service.SecurityReference;
-import springfox.documentation.service.SecurityScheme;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spi.service.contexts.SecurityContext;
-import springfox.documentation.spring.web.plugins.ApiSelectorBuilder;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+
+/**
+ * OpenAPI 3 / Knife4j 自动配置
+ *
+ * CHG-001 T03-1：由 springfox（Swagger2）迁移至 springdoc OpenAPI 3。
+ * 原 SwaggerBeanPostProcessor（springfox PathPattern 修补）与 SwaggerWebConfiguration
+ * （springfox 静态资源映射）已不再需要，随 springfox 一并移除。
+ *
+ * @author vctgo
+ */
 @Configuration
-@EnableSwagger2
 @EnableConfigurationProperties(SwaggerProperties.class)
 @ConditionalOnProperty(name = "swagger.enabled", matchIfMissing = true)
-@Import({SwaggerBeanPostProcessor.class, SwaggerWebConfiguration.class})
 public class SwaggerAutoConfiguration
 {
     /**
@@ -38,87 +38,78 @@ public class SwaggerAutoConfiguration
 
     private static final String BASE_PATH = "/**";
 
+    /** 全局鉴权方案名称，与请求头 Authorization 保持一致 */
+    private static final String SECURITY_SCHEME_NAME = "Authorization";
 
     @Bean
-    public Docket api(SwaggerProperties swaggerProperties)
+    public OpenAPI hcpOpenApi(SwaggerProperties swaggerProperties)
     {
-        // base-path处理
+        SwaggerProperties.Contact contact = swaggerProperties.getContact();
+        Info info = new Info()
+                .title(swaggerProperties.getTitle())
+                .description(swaggerProperties.getDescription())
+                .version(swaggerProperties.getVersion())
+                .termsOfService(swaggerProperties.getTermsOfServiceUrl())
+                .contact(new Contact()
+                        .name(contact == null ? null : contact.getName())
+                        .url(contact == null ? null : contact.getUrl())
+                        .email(contact == null ? null : contact.getEmail()));
+
+        if (swaggerProperties.getLicense() != null && !swaggerProperties.getLicense().isEmpty())
+        {
+            info.license(new License()
+                    .name(swaggerProperties.getLicense())
+                    .url(swaggerProperties.getLicenseUrl()));
+        }
+
+        // 安全模式：token 通过 Authorization 请求头传递
+        Components components = new Components().addSecuritySchemes(SECURITY_SCHEME_NAME,
+                new SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")
+                        .in(SecurityScheme.In.HEADER)
+                        .name(SECURITY_SCHEME_NAME));
+
+        return new OpenAPI()
+                .info(info)
+                .components(components)
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
+    }
+
+    @Bean
+    public GroupedOpenApi hcpGroupedOpenApi(SwaggerProperties swaggerProperties)
+    {
+        // base-path 处理
         if (swaggerProperties.getBasePath().isEmpty())
         {
             swaggerProperties.getBasePath().add(BASE_PATH);
         }
-        // noinspection unchecked
-        List<Predicate<String>> basePath = new ArrayList<Predicate<String>>();
-        swaggerProperties.getBasePath().forEach(path -> basePath.add(PathSelectors.ant(path)));
-
-        // exclude-path处理
+        // exclude-path 处理
         if (swaggerProperties.getExcludePath().isEmpty())
         {
             swaggerProperties.getExcludePath().addAll(DEFAULT_EXCLUDE_PATH);
         }
 
-        List<Predicate<String>> excludePath = new ArrayList<>();
-        swaggerProperties.getExcludePath().forEach(path -> excludePath.add(PathSelectors.ant(path)));
+        GroupedOpenApi.Builder builder = GroupedOpenApi.builder()
+                .group("hcp")
+                .pathsToMatch(swaggerProperties.getBasePath().toArray(new String[0]))
+                .pathsToExclude(swaggerProperties.getExcludePath().toArray(new String[0]));
 
-        ApiSelectorBuilder builder = new Docket(DocumentationType.SWAGGER_2).host(swaggerProperties.getHost())
-                .apiInfo(apiInfo(swaggerProperties)).select()
-                .apis(RequestHandlerSelectors.basePackage(swaggerProperties.getBasePackage()));
-
-        swaggerProperties.getBasePath().forEach(p -> builder.paths(PathSelectors.ant(p)));
-        swaggerProperties.getExcludePath().forEach(p -> builder.paths(PathSelectors.ant(p).negate()));
-
-        return builder.build().securitySchemes(securitySchemes()).securityContexts(securityContexts()).pathMapping("/");
-    }
-
-    /**
-     * 安全模式，这里指定token通过Authorization头请求头传递
-     */
-    private List<SecurityScheme> securitySchemes()
-    {
-        List<SecurityScheme> apiKeyList = new ArrayList<SecurityScheme>();
-        apiKeyList.add(new ApiKey("Authorization", "Authorization", "header"));
-        return apiKeyList;
-    }
-
-    /**
-     * 安全上下文
-     */
-    private List<SecurityContext> securityContexts()
-    {
-        List<SecurityContext> securityContexts = new ArrayList<>();
-        securityContexts.add(
-                SecurityContext.builder()
-                        .securityReferences(defaultAuth())
-                        .operationSelector(o -> o.requestMappingPattern().matches("/.*"))
-                        .build());
-        return securityContexts;
-    }
-
-    /**
-     * 默认的全局鉴权策略
-     *
-     * @return
-     */
-    private List<SecurityReference> defaultAuth()
-    {
-        AuthorizationScope authorizationScope = new AuthorizationScope("global", "accessEverything");
-        AuthorizationScope[] authorizationScopes = new AuthorizationScope[1];
-        authorizationScopes[0] = authorizationScope;
-        List<SecurityReference> securityReferences = new ArrayList<>();
-        securityReferences.add(new SecurityReference("Authorization", authorizationScopes));
-        return securityReferences;
-    }
-
-    private ApiInfo apiInfo(SwaggerProperties swaggerProperties)
-    {
-         return new ApiInfoBuilder()
-             .title(swaggerProperties.getTitle())
-             .description(swaggerProperties.getDescription())
-             .license(swaggerProperties.getLicense())
-             .licenseUrl(swaggerProperties.getLicenseUrl())
-             .termsOfServiceUrl(swaggerProperties.getTermsOfServiceUrl())
-             .contact(new Contact(swaggerProperties.getContact().getName(), swaggerProperties.getContact().getUrl(), swaggerProperties.getContact().getEmail()))
-             .version(swaggerProperties.getVersion())
-             .build();
+        // 未指定扫描包时不做包过滤，避免 GroupedOpenApi 扫描空包
+        String basePackage = swaggerProperties.getBasePackage();
+        if (basePackage != null && !basePackage.trim().isEmpty())
+        {
+            List<String> packages = new ArrayList<>();
+            for (String pkg : basePackage.split(","))
+            {
+                if (!pkg.trim().isEmpty())
+                {
+                    packages.add(pkg.trim());
+                }
+            }
+            builder.packagesToScan(packages.toArray(new String[0]));
+        }
+        return builder.build();
     }
 }

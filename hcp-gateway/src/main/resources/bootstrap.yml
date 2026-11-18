@@ -45,7 +45,7 @@ spring:
         ds1:
           nacos:
             server-addr: ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}
-            dataId: sentinel-vctgo-gateway
+            dataId: sentinel-hcp-gateway
             groupId: DEFAULT_GROUP
             data-type: json
             rule-type: gw-flow

@@ -1,0 +1,946 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hcp-gateway-config
+  namespace: ows-fd-evcp
+data:
+  application.yml: "spring:\n  mail:\n    host: smtp.qq.com\n    username: 544023561884@qq.com\n\
+    \    password: csgzzhyuoxtxbega\n    port: 465\n    default-encoding: UTF-8\n\
+    \    properties:\n      mail:\n        smtp:\n          ssl:\n            enable:\
+    \ true\n          socketFactoryClass: javax.net.ssl.SSLSocketFactory\n       \
+    \ debug: true\n  cloud:\n    openfeign:\n      sentinel:\n        enabled: true\n\
+    \      okhttp:\n        enabled: true\n      httpclient:\n        enabled: false\n\
+    \      client:\n        config:\n          default:\n            connectTimeout:\
+    \ 10000\n            readTimeout: 10000\n          vctgo-job:\n            connectTimeout:\
+    \ 100000\n            readTimeout: 100000\n      compression:\n        request:\n\
+    \          enabled: true\n        response:\n          enabled: true\n    gateway:\n\
+    \      discovery:\n        locator:\n          lowerCaseServiceId: true\n    \
+    \      enabled: true\n      routes:\n      - id: hcp-auth\n        uri: lb://hcp-auth\n\
+    \        predicates:\n        - Path=/auth/**\n        filters:\n        - CacheRequestFilter\n\
+    \        - ValidateCodeFilter\n        - StripPrefix=1\n      - id: hcp-gen\n\
+    \        uri: lb://hcp-gen\n        predicates:\n        - Path=/code/**\n   \
+    \     filters:\n        - StripPrefix=1\n      - id: hcp-system\n        uri:\
+    \ lb://hcp-system\n        predicates:\n        - Path=/system/**\n        filters:\n\
+    \        - StripPrefix=1\n      - id: hcp-file\n        uri: lb://hcp-file\n \
+    \       predicates:\n        - Path=/file/**\n        filters:\n        - StripPrefix=1\n\
+    \      - id: hcp-monitor\n        uri: lb://hcp-monitor\n        predicates:\n\
+    \        - Path=/monitor/**\n        filters:\n        - StripPrefix=1\n     \
+    \ - id: hcp-job\n        uri: lb://hcp-job\n        predicates:\n        - Path=/job/**\n\
+    \        filters:\n        - StripPrefix=1\n      - id: hcp-operator\n       \
+    \ uri: lb://hcp-operator\n        predicates:\n        - Path=/operator/**\n \
+    \       filters:\n        - StripPrefix=1\n      - id: hcp-mp\n        uri: lb://hcp-mp\n\
+    \        predicates:\n        - Path=/mp/**\n        filters:\n        - StripPrefix=1\n\
+    \      - id: hcp-simulator\n        uri: lb://hcp-simulator\n        predicates:\n\
+    \        - Path=/simulator/**\n        filters:\n        - StripPrefix=1\n   \
+    \ nacos:\n      config:\n        enabled: false\n      discovery:\n        server-addr:\
+    \ ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}\n        namespace: hcp\n  data:\n\
+    \    redis:\n      host: 192.168.20.176\n      port: 16379\n      database: 122\n\
+    \      password: '1234567890'\n      timeout: 3000ms\n      lettuce:\n       \
+    \ pool:\n          max-active: 20\n          max-wait: 500ms\n          max-idle:\
+    \ 10\n          min-idle: 2\n  jackson:\n    time-zone: GMT+8\nmanagement:\n \
+    \ endpoints:\n    web:\n      exposure:\n        include: '*'\nlogging:\n  level:\n\
+    \    org.springframework: info\n    com.hcp: debug\n  file_basePath: ./logs\n\
+    \  file_prefix: ${spring.application.name}\nmybatis-plus:\n  mapper-locations:\
+    \ classpath*:mapper/**/*.xml\n  global-config:\n    banner: false\n    refresh-mapper:\
+    \ true\n    db-config:\n      id-type: auto\n      table-underline: true\n   \
+    \   logic-delete-value: 1\n      logic-not-delete-value: 0\n  configuration:\n\
+    \    map-underscore-to-camel-case: true\n  type-handlers-package: com.hcp.common.mybatisplus\n\
+    hcp:\n  tenant:\n    ignore-tables:\n    - sys_config\n    - gen_table\n    -\
+    \ gen_table_column\n    - sys_dict_data\n    - sys_dict_type\n    - sys_menu\n\
+    \    - sys_tenant\n    - sys_tenant_package\n    - sys_oper_log\n    - sys_logininfor\n\
+    \    - branch_table\n    - global_table\n    - lock_table\n    - undo_log\n  \
+    \  - xxl_job_group\n    - xxl_job_info\n    - xxl_job_lock\n    - xxl_job_log\n\
+    \    - xxl_job_log_report\n    - xxl_job_logglue\n    - xxl_job_registry\n   \
+    \ - xxl_job_user\n    - c_city\naliyun:\n  endpoint: cn-shanghai\n  accessKeyId:\
+    \ null\n  accessKeySecret: null\n  signName: null\n  templateCode: null\nfile:\n\
+    \  domain: http://127.0.0.1:39300\n  path: /home/upload\n  prefix: /documents\n\
+    security:\n  captcha:\n    enabled: true\n    type: math\n  xss:\n    enabled:\
+    \ true\n    excludeUrls:\n    - /system/notice\n  ignore:\n    whites:\n    -\
+    \ /auth/logout\n    - /auth/login\n    - /auth/register\n    - /*/v3/api-docs\n\
+    \    - /csrf\n    - /job/api/callback\n    - /job/api/registry\n    - /job/api/registryRemove\n\
+    \    - /file/documents/**\n    - /hcp-mp/**\n    - /hcp-operator/websocket/charge/**\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hcp-gateway
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-gateway
+    part-of: hcp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hcp-gateway
+  template:
+    metadata:
+      labels:
+        app: hcp-gateway
+        part-of: hcp
+    spec:
+      imagePullSecrets:
+      - name: harbor-registry
+      containers:
+      - name: hcp-gateway
+        image: harbor.yuanwangxianfeng.com/ows/hcp-gateway:boot3-20261118
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: NACOS_HOST
+          value: nacos.test-common-app.svc.cluster.local
+        - name: NACOS_PORT
+          value: '8848'
+        - name: SPRING_PROFILES_ACTIVE
+          value: dev
+        - name: SPRING_CLOUD_NACOS_CONFIG_ENABLED
+          value: 'false'
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true
+        ports:
+        - containerPort: 38080
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: 38080
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          failureThreshold: 12
+        livenessProbe:
+          tcpSocket:
+            port: 38080
+          initialDelaySeconds: 120
+          periodSeconds: 20
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: hcp-gateway-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hcp-gateway
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-gateway
+spec:
+  selector:
+    app: hcp-gateway
+  ports:
+  - name: http
+    port: 38080
+    targetPort: 38080
+    nodePort: 30880
+  type: NodePort
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hcp-auth-config
+  namespace: ows-fd-evcp
+data:
+  application.yml: "spring:\n  mail:\n    host: smtp.qq.com\n    username: 544023561884@qq.com\n\
+    \    password: csgzzhyuoxtxbega\n    port: 465\n    default-encoding: UTF-8\n\
+    \    properties:\n      mail:\n        smtp:\n          ssl:\n            enable:\
+    \ true\n          socketFactoryClass: javax.net.ssl.SSLSocketFactory\n       \
+    \ debug: true\n  cloud:\n    openfeign:\n      sentinel:\n        enabled: true\n\
+    \      okhttp:\n        enabled: true\n      httpclient:\n        enabled: false\n\
+    \      client:\n        config:\n          default:\n            connectTimeout:\
+    \ 10000\n            readTimeout: 10000\n            requestInterceptors: com.hcp.common.security.feign.FeignRequestInterceptor\n\
+    \          vctgo-job:\n            connectTimeout: 100000\n            readTimeout:\
+    \ 100000\n      compression:\n        request:\n          enabled: true\n    \
+    \    response:\n          enabled: true\n    nacos:\n      config:\n        enabled:\
+    \ false\n      discovery:\n        server-addr: ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}\n\
+    \        namespace: hcp\n  data:\n    redis:\n      host: 192.168.20.176\n   \
+    \   port: 16379\n      database: 122\n      password: '1234567890'\n      timeout:\
+    \ 3000ms\n      lettuce:\n        pool:\n          max-active: 20\n          max-wait:\
+    \ 500ms\n          max-idle: 10\n          min-idle: 2\n  jackson:\n    time-zone:\
+    \ GMT+8\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include:\
+    \ '*'\nlogging:\n  level:\n    org.springframework: info\n    com.hcp: debug\n\
+    \  file_basePath: ./logs\n  file_prefix: ${spring.application.name}\nmybatis-plus:\n\
+    \  mapper-locations: classpath*:mapper/**/*.xml\n  global-config:\n    banner:\
+    \ false\n    refresh-mapper: true\n    db-config:\n      id-type: auto\n     \
+    \ table-underline: true\n      logic-delete-value: 1\n      logic-not-delete-value:\
+    \ 0\n  configuration:\n    map-underscore-to-camel-case: true\n  type-handlers-package:\
+    \ com.hcp.common.mybatisplus\nhcp:\n  tenant:\n    ignore-tables:\n    - sys_config\n\
+    \    - gen_table\n    - gen_table_column\n    - sys_dict_data\n    - sys_dict_type\n\
+    \    - sys_menu\n    - sys_tenant\n    - sys_tenant_package\n    - sys_oper_log\n\
+    \    - sys_logininfor\n    - branch_table\n    - global_table\n    - lock_table\n\
+    \    - undo_log\n    - xxl_job_group\n    - xxl_job_info\n    - xxl_job_lock\n\
+    \    - xxl_job_log\n    - xxl_job_log_report\n    - xxl_job_logglue\n    - xxl_job_registry\n\
+    \    - xxl_job_user\n    - c_city\naliyun:\n  endpoint: cn-shanghai\n  accessKeyId:\
+    \ null\n  accessKeySecret: null\n  signName: null\n  templateCode: null\nfile:\n\
+    \  domain: http://127.0.0.1:39300\n  path: /home/upload\n  prefix: /documents\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hcp-auth
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-auth
+    part-of: hcp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hcp-auth
+  template:
+    metadata:
+      labels:
+        app: hcp-auth
+        part-of: hcp
+    spec:
+      imagePullSecrets:
+      - name: harbor-registry
+      containers:
+      - name: hcp-auth
+        image: harbor.yuanwangxianfeng.com/ows/hcp-auth:boot3-20261118
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: NACOS_HOST
+          value: nacos.test-common-app.svc.cluster.local
+        - name: NACOS_PORT
+          value: '8848'
+        - name: SPRING_PROFILES_ACTIVE
+          value: dev
+        - name: SPRING_CLOUD_NACOS_CONFIG_ENABLED
+          value: 'false'
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true
+        ports:
+        - containerPort: 39200
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: 39200
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          failureThreshold: 12
+        livenessProbe:
+          tcpSocket:
+            port: 39200
+          initialDelaySeconds: 120
+          periodSeconds: 20
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: hcp-auth-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hcp-auth
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-auth
+spec:
+  selector:
+    app: hcp-auth
+  ports:
+  - name: http
+    port: 39200
+    targetPort: 39200
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hcp-system-config
+  namespace: ows-fd-evcp
+data:
+  application.yml: "spring:\n  mail:\n    host: smtp.qq.com\n    username: 544023561884@qq.com\n\
+    \    password: csgzzhyuoxtxbega\n    port: 465\n    default-encoding: UTF-8\n\
+    \    properties:\n      mail:\n        smtp:\n          ssl:\n            enable:\
+    \ true\n          socketFactoryClass: javax.net.ssl.SSLSocketFactory\n       \
+    \ debug: true\n  cloud:\n    openfeign:\n      sentinel:\n        enabled: true\n\
+    \      okhttp:\n        enabled: true\n      httpclient:\n        enabled: false\n\
+    \      client:\n        config:\n          default:\n            connectTimeout:\
+    \ 10000\n            readTimeout: 10000\n            loggerLevel: full\n     \
+    \       requestInterceptors: com.hcp.common.security.feign.FeignRequestInterceptor\n\
+    \          vctgo-job:\n            connectTimeout: 100000\n            readTimeout:\
+    \ 100000\n      compression:\n        request:\n          enabled: true\n    \
+    \    response:\n          enabled: true\n    nacos:\n      config:\n        enabled:\
+    \ false\n      discovery:\n        server-addr: ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}\n\
+    \        namespace: hcp\n  datasource:\n    driver-class-name: com.mysql.cj.jdbc.Driver\n\
+    \    url: jdbc:mysql://192.168.20.186:3306/hcp_cloud?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8\n\
+    \    username: root\n    password: 9sjTIw3TiL3RWOWB\n    hikari:\n      maximum-pool-size:\
+    \ 20\n      minimum-idle: 5\n      connection-timeout: 30000\n      connection-test-query:\
+    \ SELECT 1\n  data:\n    redis:\n      host: 192.168.20.176\n      port: 16379\n\
+    \      database: 122\n      password: '1234567890'\n      timeout: 3000ms\n  \
+    \    lettuce:\n        pool:\n          max-active: 20\n          max-wait: 500ms\n\
+    \          max-idle: 10\n          min-idle: 2\n  jackson:\n    time-zone: GMT+8\n\
+    management:\n  endpoints:\n    web:\n      exposure:\n        include: '*'\nlogging:\n\
+    \  level:\n    org.springframework: info\n    com.hcp: debug\n  file_basePath:\
+    \ ./logs\n  file_prefix: ${spring.application.name}\nmybatis-plus:\n  mapper-locations:\
+    \ classpath*:mapper/**/*.xml\n  global-config:\n    banner: false\n    refresh-mapper:\
+    \ true\n    db-config:\n      id-type: auto\n      table-underline: true\n   \
+    \   logic-delete-value: 1\n      logic-not-delete-value: 0\n  configuration:\n\
+    \    map-underscore-to-camel-case: true\n  type-handlers-package: com.hcp.common.mybatisplus\n\
+    hcp:\n  tenant:\n    ignore-tables:\n    - sys_config\n    - gen_table\n    -\
+    \ gen_table_column\n    - sys_dict_data\n    - sys_dict_type\n    - sys_menu\n\
+    \    - sys_tenant\n    - sys_tenant_package\n    - sys_oper_log\n    - sys_logininfor\n\
+    \    - branch_table\n    - global_table\n    - lock_table\n    - undo_log\n  \
+    \  - xxl_job_group\n    - xxl_job_info\n    - xxl_job_lock\n    - xxl_job_log\n\
+    \    - xxl_job_log_report\n    - xxl_job_logglue\n    - xxl_job_registry\n   \
+    \ - xxl_job_user\n    - c_city\naliyun:\n  endpoint: cn-shanghai\n  accessKeyId:\
+    \ null\n  accessKeySecret: null\n  signName: null\n  templateCode: null\nfile:\n\
+    \  domain: http://127.0.0.1:39300\n  path: /home/upload\n  prefix: /documents\n\
+    swagger:\n  title: 系统模块接口文档\n  license: Powered By hcp\n  licenseUrl: https://hcp.vip\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hcp-system
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-system
+    part-of: hcp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hcp-system
+  template:
+    metadata:
+      labels:
+        app: hcp-system
+        part-of: hcp
+    spec:
+      imagePullSecrets:
+      - name: harbor-registry
+      containers:
+      - name: hcp-system
+        image: harbor.yuanwangxianfeng.com/ows/hcp-system:boot3-20261118
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: NACOS_HOST
+          value: nacos.test-common-app.svc.cluster.local
+        - name: NACOS_PORT
+          value: '8848'
+        - name: SPRING_PROFILES_ACTIVE
+          value: dev
+        - name: SPRING_CLOUD_NACOS_CONFIG_ENABLED
+          value: 'false'
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true
+        ports:
+        - containerPort: 39201
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: 39201
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          failureThreshold: 12
+        livenessProbe:
+          tcpSocket:
+            port: 39201
+          initialDelaySeconds: 120
+          periodSeconds: 20
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: hcp-system-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hcp-system
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-system
+spec:
+  selector:
+    app: hcp-system
+  ports:
+  - name: http
+    port: 39201
+    targetPort: 39201
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hcp-operator-config
+  namespace: ows-fd-evcp
+data:
+  application.yml: "spring:\n  mail:\n    host: smtp.qq.com\n    username: 544023561884@qq.com\n\
+    \    password: csgzzhyuoxtxbega\n    port: 465\n    default-encoding: UTF-8\n\
+    \    properties:\n      mail:\n        smtp:\n          ssl:\n            enable:\
+    \ true\n          socketFactoryClass: javax.net.ssl.SSLSocketFactory\n       \
+    \ debug: true\n  cloud:\n    openfeign:\n      sentinel:\n        enabled: true\n\
+    \      okhttp:\n        enabled: true\n      httpclient:\n        enabled: false\n\
+    \      client:\n        config:\n          default:\n            connectTimeout:\
+    \ 10000\n            readTimeout: 10000\n            loggerLevel: full\n     \
+    \       requestInterceptors: com.hcp.common.security.feign.FeignRequestInterceptor\n\
+    \          vctgo-job:\n            connectTimeout: 100000\n            readTimeout:\
+    \ 100000\n      compression:\n        request:\n          enabled: true\n    \
+    \    response:\n          enabled: true\n    nacos:\n      config:\n        enabled:\
+    \ false\n      discovery:\n        server-addr: ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}\n\
+    \        namespace: hcp\n  datasource:\n    driver-class-name: com.mysql.cj.jdbc.Driver\n\
+    \    url: jdbc:mysql://192.168.20.186:3306/hcp_cloud?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8\n\
+    \    username: root\n    password: 9sjTIw3TiL3RWOWB\n    hikari:\n      maximum-pool-size:\
+    \ 20\n      minimum-idle: 5\n      connection-timeout: 30000\n      connection-test-query:\
+    \ SELECT 1\n  data:\n    redis:\n      host: 192.168.20.176\n      port: 16379\n\
+    \      database: 122\n      password: '1234567890'\n      timeout: 3000ms\n  \
+    \    lettuce:\n        pool:\n          max-active: 20\n          max-wait: 500ms\n\
+    \          max-idle: 10\n          min-idle: 2\n  jackson:\n    time-zone: GMT+8\n\
+    management:\n  endpoints:\n    web:\n      exposure:\n        include: '*'\nlogging:\n\
+    \  level:\n    org.springframework: info\n    com.hcp: debug\n  file_basePath:\
+    \ ./logs\n  file_prefix: ${spring.application.name}\nmybatis-plus:\n  mapper-locations:\
+    \ classpath*:mapper/**/*.xml\n  global-config:\n    banner: false\n    refresh-mapper:\
+    \ true\n    db-config:\n      id-type: auto\n      table-underline: true\n   \
+    \   logic-delete-value: 1\n      logic-not-delete-value: 0\n  configuration:\n\
+    \    map-underscore-to-camel-case: true\n  type-handlers-package: com.hcp.common.mybatisplus\n\
+    hcp:\n  tenant:\n    ignore-tables:\n    - sys_config\n    - gen_table\n    -\
+    \ gen_table_column\n    - sys_dict_data\n    - sys_dict_type\n    - sys_menu\n\
+    \    - sys_tenant\n    - sys_tenant_package\n    - sys_oper_log\n    - sys_logininfor\n\
+    \    - branch_table\n    - global_table\n    - lock_table\n    - undo_log\n  \
+    \  - xxl_job_group\n    - xxl_job_info\n    - xxl_job_lock\n    - xxl_job_log\n\
+    \    - xxl_job_log_report\n    - xxl_job_logglue\n    - xxl_job_registry\n   \
+    \ - xxl_job_user\n    - c_city\naliyun:\n  endpoint: cn-shanghai\n  accessKeyId:\
+    \ null\n  accessKeySecret: null\n  signName: null\n  templateCode: null\nfile:\n\
+    \  domain: http://127.0.0.1:39300\n  path: /home/upload\n  prefix: /documents\n\
+    swagger:\n  title: 系统模块接口文档\n  license: Powered By hcp\n  licenseUrl: https://hcp.vip\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hcp-operator
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-operator
+    part-of: hcp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hcp-operator
+  template:
+    metadata:
+      labels:
+        app: hcp-operator
+        part-of: hcp
+    spec:
+      imagePullSecrets:
+      - name: harbor-registry
+      containers:
+      - name: hcp-operator
+        image: harbor.yuanwangxianfeng.com/ows/hcp-operator:boot3-20261118
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: NACOS_HOST
+          value: nacos.test-common-app.svc.cluster.local
+        - name: NACOS_PORT
+          value: '8848'
+        - name: SPRING_PROFILES_ACTIVE
+          value: dev
+        - name: SPRING_CLOUD_NACOS_CONFIG_ENABLED
+          value: 'false'
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true
+        ports:
+        - containerPort: 39206
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: 39206
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          failureThreshold: 12
+        livenessProbe:
+          tcpSocket:
+            port: 39206
+          initialDelaySeconds: 120
+          periodSeconds: 20
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: hcp-operator-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hcp-operator
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-operator
+spec:
+  selector:
+    app: hcp-operator
+  ports:
+  - name: http
+    port: 39206
+    targetPort: 39206
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hcp-mp-config
+  namespace: ows-fd-evcp
+data:
+  application.yml: "spring:\n  mail:\n    host: smtp.qq.com\n    username: 544023561884@qq.com\n\
+    \    password: csgzzhyuoxtxbega\n    port: 465\n    default-encoding: UTF-8\n\
+    \    properties:\n      mail:\n        smtp:\n          ssl:\n            enable:\
+    \ true\n          socketFactoryClass: javax.net.ssl.SSLSocketFactory\n       \
+    \ debug: true\n  cloud:\n    openfeign:\n      sentinel:\n        enabled: true\n\
+    \      okhttp:\n        enabled: true\n      httpclient:\n        enabled: false\n\
+    \      client:\n        config:\n          default:\n            connectTimeout:\
+    \ 10000\n            readTimeout: 10000\n            loggerLevel: full\n     \
+    \       requestInterceptors: com.hcp.common.security.feign.FeignRequestInterceptor\n\
+    \          vctgo-job:\n            connectTimeout: 100000\n            readTimeout:\
+    \ 100000\n      compression:\n        request:\n          enabled: true\n    \
+    \    response:\n          enabled: true\n    nacos:\n      config:\n        enabled:\
+    \ false\n      discovery:\n        server-addr: ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}\n\
+    \        namespace: hcp\n  datasource:\n    driver-class-name: com.mysql.cj.jdbc.Driver\n\
+    \    url: jdbc:mysql://192.168.20.186:3306/hcp_cloud?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8\n\
+    \    username: root\n    password: 9sjTIw3TiL3RWOWB\n    hikari:\n      maximum-pool-size:\
+    \ 20\n      minimum-idle: 5\n      connection-timeout: 30000\n      connection-test-query:\
+    \ SELECT 1\n  data:\n    redis:\n      host: 192.168.20.176\n      port: 16379\n\
+    \      database: 122\n      password: '1234567890'\n      timeout: 3000ms\n  \
+    \    lettuce:\n        pool:\n          max-active: 20\n          max-wait: 500ms\n\
+    \          max-idle: 10\n          min-idle: 2\n  jackson:\n    time-zone: GMT+8\n\
+    management:\n  endpoints:\n    web:\n      exposure:\n        include: '*'\nlogging:\n\
+    \  level:\n    org.springframework: info\n    com.hcp: debug\n  file_basePath:\
+    \ ./logs\n  file_prefix: ${spring.application.name}\nmybatis-plus:\n  mapper-locations:\
+    \ classpath*:mapper/**/*.xml\n  global-config:\n    banner: false\n    refresh-mapper:\
+    \ true\n    db-config:\n      id-type: auto\n      table-underline: true\n   \
+    \   logic-delete-value: 1\n      logic-not-delete-value: 0\n  configuration:\n\
+    \    map-underscore-to-camel-case: true\n  type-handlers-package: com.hcp.common.mybatisplus\n\
+    hcp:\n  tenant:\n    ignore-tables:\n    - sys_config\n    - gen_table\n    -\
+    \ gen_table_column\n    - sys_dict_data\n    - sys_dict_type\n    - sys_menu\n\
+    \    - sys_tenant\n    - sys_tenant_package\n    - sys_oper_log\n    - sys_logininfor\n\
+    \    - branch_table\n    - global_table\n    - lock_table\n    - undo_log\n  \
+    \  - xxl_job_group\n    - xxl_job_info\n    - xxl_job_lock\n    - xxl_job_log\n\
+    \    - xxl_job_log_report\n    - xxl_job_logglue\n    - xxl_job_registry\n   \
+    \ - xxl_job_user\n    - c_city\naliyun:\n  endpoint: cn-shanghai\n  accessKeyId:\
+    \ null\n  accessKeySecret: null\n  signName: null\n  templateCode: null\nfile:\n\
+    \  domain: http://127.0.0.1:39300\n  path: /home/upload\n  prefix: /documents\n\
+    swagger:\n  title: 系统模块接口文档\n  license: Powered By hcp\n  licenseUrl: https://hcp.vip\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hcp-mp
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-mp
+    part-of: hcp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hcp-mp
+  template:
+    metadata:
+      labels:
+        app: hcp-mp
+        part-of: hcp
+    spec:
+      imagePullSecrets:
+      - name: harbor-registry
+      containers:
+      - name: hcp-mp
+        image: harbor.yuanwangxianfeng.com/ows/hcp-mp:boot3-20261118
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: NACOS_HOST
+          value: nacos.test-common-app.svc.cluster.local
+        - name: NACOS_PORT
+          value: '8848'
+        - name: SPRING_PROFILES_ACTIVE
+          value: dev
+        - name: SPRING_CLOUD_NACOS_CONFIG_ENABLED
+          value: 'false'
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true
+        ports:
+        - containerPort: 39207
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: 39207
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          failureThreshold: 12
+        livenessProbe:
+          tcpSocket:
+            port: 39207
+          initialDelaySeconds: 120
+          periodSeconds: 20
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: hcp-mp-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hcp-mp
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-mp
+spec:
+  selector:
+    app: hcp-mp
+  ports:
+  - name: http
+    port: 39207
+    targetPort: 39207
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hcp-file-config
+  namespace: ows-fd-evcp
+data:
+  application.yml: "spring:\n  mail:\n    host: smtp.qq.com\n    username: 544023561884@qq.com\n\
+    \    password: csgzzhyuoxtxbega\n    port: 465\n    default-encoding: UTF-8\n\
+    \    properties:\n      mail:\n        smtp:\n          ssl:\n            enable:\
+    \ true\n          socketFactoryClass: javax.net.ssl.SSLSocketFactory\n       \
+    \ debug: true\n  cloud:\n    openfeign:\n      sentinel:\n        enabled: true\n\
+    \      okhttp:\n        enabled: true\n      httpclient:\n        enabled: false\n\
+    \      client:\n        config:\n          default:\n            connectTimeout:\
+    \ 10000\n            readTimeout: 10000\n          vctgo-job:\n            connectTimeout:\
+    \ 100000\n            readTimeout: 100000\n      compression:\n        request:\n\
+    \          enabled: true\n        response:\n          enabled: true\n    nacos:\n\
+    \      config:\n        enabled: false\n      discovery:\n        server-addr:\
+    \ ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}\n        namespace: hcp\n  datasource:\n\
+    \    driver-class-name: com.mysql.cj.jdbc.Driver\n    url: jdbc:mysql://192.168.20.186:3306/hcp_cloud?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8\n\
+    \    username: root\n    password: 9sjTIw3TiL3RWOWB\n    hikari:\n      maximum-pool-size:\
+    \ 20\n      minimum-idle: 5\n      connection-timeout: 30000\n      connection-test-query:\
+    \ SELECT 1\n  data:\n    redis:\n      host: 192.168.20.176\n      port: 16379\n\
+    \      database: 122\n      password: '1234567890'\n      timeout: 3000ms\n  \
+    \    lettuce:\n        pool:\n          max-active: 20\n          max-wait: 500ms\n\
+    \          max-idle: 10\n          min-idle: 2\n  jackson:\n    time-zone: GMT+8\n\
+    management:\n  endpoints:\n    web:\n      exposure:\n        include: '*'\nlogging:\n\
+    \  level:\n    org.springframework: info\n    com.hcp: debug\n  file_basePath:\
+    \ ./logs\n  file_prefix: ${spring.application.name}\nmybatis-plus:\n  mapper-locations:\
+    \ classpath*:mapper/**/*.xml\n  global-config:\n    banner: false\n    refresh-mapper:\
+    \ true\n    db-config:\n      id-type: auto\n      table-underline: true\n   \
+    \   logic-delete-value: 1\n      logic-not-delete-value: 0\n  configuration:\n\
+    \    map-underscore-to-camel-case: true\n  type-handlers-package: com.hcp.common.mybatisplus\n\
+    hcp:\n  tenant:\n    ignore-tables:\n    - sys_config\n    - gen_table\n    -\
+    \ gen_table_column\n    - sys_dict_data\n    - sys_dict_type\n    - sys_menu\n\
+    \    - sys_tenant\n    - sys_tenant_package\n    - sys_oper_log\n    - sys_logininfor\n\
+    \    - branch_table\n    - global_table\n    - lock_table\n    - undo_log\n  \
+    \  - xxl_job_group\n    - xxl_job_info\n    - xxl_job_lock\n    - xxl_job_log\n\
+    \    - xxl_job_log_report\n    - xxl_job_logglue\n    - xxl_job_registry\n   \
+    \ - xxl_job_user\n    - c_city\naliyun:\n  endpoint: cn-shanghai\n  accessKeyId:\
+    \ null\n  accessKeySecret: null\n  signName: null\n  templateCode: null\nfile:\n\
+    \  domain: http://127.0.0.1:39300\n  path: /home/upload\n  prefix: /documents\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hcp-file
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-file
+    part-of: hcp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hcp-file
+  template:
+    metadata:
+      labels:
+        app: hcp-file
+        part-of: hcp
+    spec:
+      imagePullSecrets:
+      - name: harbor-registry
+      containers:
+      - name: hcp-file
+        image: harbor.yuanwangxianfeng.com/ows/hcp-file:boot3-20261118
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: NACOS_HOST
+          value: nacos.test-common-app.svc.cluster.local
+        - name: NACOS_PORT
+          value: '8848'
+        - name: SPRING_PROFILES_ACTIVE
+          value: dev
+        - name: SPRING_CLOUD_NACOS_CONFIG_ENABLED
+          value: 'false'
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true
+        ports:
+        - containerPort: 39300
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: 39300
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          failureThreshold: 12
+        livenessProbe:
+          tcpSocket:
+            port: 39300
+          initialDelaySeconds: 120
+          periodSeconds: 20
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: hcp-file-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hcp-file
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-file
+spec:
+  selector:
+    app: hcp-file
+  ports:
+  - name: http
+    port: 39300
+    targetPort: 39300
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hcp-job-config
+  namespace: ows-fd-evcp
+data:
+  application.yml: "spring:\n  mail:\n    host: www.163.com\n    username: xxxxxx@163.com\n\
+    \    password: xxxxxx\n    port: 25\n    default-encoding: UTF-8\n    properties:\n\
+    \      mail:\n        smtp:\n          ssl:\n            enable: true\n      \
+    \    socketFactoryClass: javax.net.ssl.SSLSocketFactory\n          auth: false\n\
+    \          starttls:\n            enable: false\n            required: false\n\
+    \          socketFactory:\n            class: javax.net.ssl.SSLSocketFactory\n\
+    \        debug: true\n    from: xxxxxx@163.com\n  cloud:\n    openfeign:\n   \
+    \   sentinel:\n        enabled: true\n      okhttp:\n        enabled: true\n \
+    \     httpclient:\n        enabled: false\n      client:\n        config:\n  \
+    \        default:\n            connectTimeout: 10000\n            readTimeout:\
+    \ 10000\n          vctgo-job:\n            connectTimeout: 100000\n          \
+    \  readTimeout: 100000\n      compression:\n        request:\n          enabled:\
+    \ true\n        response:\n          enabled: true\n    nacos:\n      config:\n\
+    \        enabled: false\n      discovery:\n        server-addr: ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}\n\
+    \        namespace: hcp\n  datasource:\n    driver-class-name: com.mysql.cj.jdbc.Driver\n\
+    \    url: jdbc:mysql://192.168.20.186:3306/hcp_cloud?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8\n\
+    \    username: root\n    password: 9sjTIw3TiL3RWOWB\n    hikari:\n      maximum-pool-size:\
+    \ 20\n      minimum-idle: 5\n      connection-timeout: 30000\n      connection-test-query:\
+    \ SELECT 1\n  data:\n    redis:\n      host: 192.168.20.176\n      port: 16379\n\
+    \      database: 122\n      password: '1234567890'\n      timeout: 3000ms\n  \
+    \    lettuce:\n        pool:\n          max-active: 20\n          max-wait: 500ms\n\
+    \          max-idle: 10\n          min-idle: 2\n  jackson:\n    time-zone: GMT+8\n\
+    management:\n  endpoints:\n    web:\n      exposure:\n        include: '*'\nlogging:\n\
+    \  level:\n    org.springframework: info\n    com.hcp: debug\n  file_basePath:\
+    \ ./logs\n  file_prefix: ${spring.application.name}\nmybatis-plus:\n  mapper-locations:\
+    \ classpath*:mapper/**/*.xml\n  global-config:\n    banner: false\n    refresh-mapper:\
+    \ true\n    db-config:\n      id-type: auto\n      table-underline: true\n   \
+    \   logic-delete-value: 1\n      logic-not-delete-value: 0\n  configuration:\n\
+    \    map-underscore-to-camel-case: true\n  type-handlers-package: com.hcp.common.mybatisplus\n\
+    hcp:\n  tenant:\n    ignore-tables:\n    - sys_config\n    - gen_table\n    -\
+    \ gen_table_column\n    - sys_dict_data\n    - sys_dict_type\n    - sys_menu\n\
+    \    - sys_tenant\n    - sys_tenant_package\n    - sys_oper_log\n    - sys_logininfor\n\
+    \    - branch_table\n    - global_table\n    - lock_table\n    - undo_log\n  \
+    \  - xxl_job_group\n    - xxl_job_info\n    - xxl_job_lock\n    - xxl_job_log\n\
+    \    - xxl_job_log_report\n    - xxl_job_logglue\n    - xxl_job_registry\n   \
+    \ - xxl_job_user\n    - c_city\naliyun:\n  endpoint: cn-shanghai\n  accessKeyId:\
+    \ null\n  accessKeySecret: null\n  signName: null\n  templateCode: null\nfile:\n\
+    \  domain: http://127.0.0.1:39300\n  path: /home/upload\n  prefix: /documents\n\
+    swagger:\n  title: 定时任务接口文档\n  license: Powered By hcp\n  licenseUrl: https://hcp.cn\n\
+    xxl:\n  job:\n    accessToken: default_token\n    i18n: zh_CN\n    logretentiondays:\
+    \ 30\n    triggerpool:\n      fast:\n        max: 200\n      slow:\n        max:\
+    \ 100\ncustom:\n  log:\n    list:\n    - scheduleJobQuery-error\n    - findFailJobLogIds-error\n\
+    \    - findByAddressType-error\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hcp-job
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-job
+    part-of: hcp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hcp-job
+  template:
+    metadata:
+      labels:
+        app: hcp-job
+        part-of: hcp
+    spec:
+      imagePullSecrets:
+      - name: harbor-registry
+      containers:
+      - name: hcp-job
+        image: harbor.yuanwangxianfeng.com/ows/hcp-job:boot3-20261118
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: NACOS_HOST
+          value: nacos.test-common-app.svc.cluster.local
+        - name: NACOS_PORT
+          value: '8848'
+        - name: SPRING_PROFILES_ACTIVE
+          value: dev
+        - name: SPRING_CLOUD_NACOS_CONFIG_ENABLED
+          value: 'false'
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true
+        ports:
+        - containerPort: 39204
+          name: http
+        readinessProbe:
+          tcpSocket:
+            port: 39204
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          failureThreshold: 12
+        livenessProbe:
+          tcpSocket:
+            port: 39204
+          initialDelaySeconds: 120
+          periodSeconds: 20
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: hcp-job-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hcp-job
+  namespace: ows-fd-evcp
+  labels:
+    app: hcp-job
+spec:
+  selector:
+    app: hcp-job
+  ports:
+  - name: http
+    port: 39204
+    targetPort: 39204

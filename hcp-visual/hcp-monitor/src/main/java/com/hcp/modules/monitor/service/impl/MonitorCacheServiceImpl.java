@@ -141,7 +141,7 @@ public class MonitorCacheServiceImpl implements IMonitorCacheService
             RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
             redisTemplate.setConnectionFactory(factory);
             redisTemplate.afterPropertiesSet();
-            Object dbSize = redisTemplate.execute((RedisCallback<Object>) connection -> connection.dbSize());
+            Object dbSize = redisTemplate.execute((RedisCallback<Object>) connection -> connection.serverCommands().dbSize());
             factory.resetConnection();
             if (StringUtils.isEmpty(dbSize)){
                 return AjaxResult.success("连接失败!","error");

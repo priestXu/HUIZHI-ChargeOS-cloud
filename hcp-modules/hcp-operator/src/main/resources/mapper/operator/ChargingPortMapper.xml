@@ -57,7 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="query.gunInsert != null  and query.gunInsert != ''"> and t1.gun_insert = #{query.gunInsert}</if>
             <if test="query.gunStatus != null "> and t1.gun_status = #{query.gunStatus}</if>
         </where>
-        GROUP BY t1.port_id
+        <!-- MySQL 8 ONLY_FULL_GROUP_BY：子查询已按 port_id 去重为 1:1，GROUP BY 冗余且会因 t1.*/t2.* 非聚合列报错 -->
         ORDER BY t1.create_time DESC
     </select>
     <select id="selectPort" resultType="com.hcp.system.api.domain.ChargingPort">

@@ -30,4 +30,5 @@ spring:
         # 共享配置
         shared-configs:
           - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
-#        namespace: hcp
+        # CHG-001：原代码此处被注释，导致 hcp-mp 从 public 命名空间拉配置而启动失败
+        namespace: hcp

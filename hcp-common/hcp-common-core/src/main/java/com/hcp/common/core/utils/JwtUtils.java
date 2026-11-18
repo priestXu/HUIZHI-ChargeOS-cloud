@@ -1,12 +1,14 @@
 package com.hcp.common.core.utils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import javax.crypto.SecretKey;
 import com.hcp.common.core.constant.SecurityConstants;
 import com.hcp.common.core.constant.TokenConstants;
 import com.hcp.common.core.text.Convert;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 
 /**
  * Jwt工具类
@@ -18,6 +20,14 @@ public class JwtUtils
     public static String secret = TokenConstants.SECRET;
 
     /**
+     * CHG-001 D4：jjwt 0.12.x 起必须使用 SecretKey，HS512 要求密钥 ≥ 64 字节
+     */
+    private static SecretKey hmacKey()
+    {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
      * 从数据声明生成令牌
      *
      * @param claims 数据声明
@@ -25,7 +35,7 @@ public class JwtUtils
      */
     public static String createToken(Map<String, Object> claims)
     {
-        String token = Jwts.builder().setClaims(claims).signWith(SignatureAlgorithm.HS512, secret).compact();
+        String token = Jwts.builder().claims(claims).signWith(hmacKey(), Jwts.SIG.HS512).compact();
         return token;
     }
 
@@ -37,7 +47,7 @@ public class JwtUtils
      */
     public static Claims parseToken(String token)
     {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+        return Jwts.parser().verifyWith(hmacKey()).build().parseSignedClaims(token).getPayload();
     }
 
     /**

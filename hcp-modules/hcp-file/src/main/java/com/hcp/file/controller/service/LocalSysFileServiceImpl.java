@@ -87,7 +87,19 @@ public class LocalSysFileServiceImpl implements ISysFileService
         if (StringUtils.equals(ossConfig.getPlatformId(), PlatformConstant.BOS)){
             storage = new BaiduFileStorage(ossConfig);
         }
-        assert storage != null;
+        // CHG-003：新增本地磁盘存储分支。原实现只支持 6 家云厂商，
+        // platformId 为 local 时 storage 为 null 会直接 assert 失败。
+        if (storage == null)
+        {
+            if (StringUtils.equals(ossConfig.getPlatformId(), PlatformConstant.LOCAL))
+            {
+                String relativePath = FileUploadUtils.upload(localFilePath, file);
+                String url = domain + localFilePrefix + relativePath;
+                log.info("本地存储上传成功: {}", url);
+                return url;
+            }
+            throw new Exception("不支持的存储平台: " + ossConfig.getPlatformId());
+        }
         FileInfo upload = storage.upload(file);
         log.info("上传结果:{}", JSONObject.toJSONString(upload));
         return upload.getUrl();

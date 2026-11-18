@@ -12,11 +12,15 @@
         <module>hcp-common-log</module>
         <module>hcp-common-core</module>
         <module>hcp-common-redis</module>
+        <!-- CHG-001 D5 剔除：hcp-common-seata（无 src 死模块，零业务引用）
         <module>hcp-common-seata</module>
+        -->
         <module>hcp-common-swagger</module>
         <module>hcp-common-security</module>
         <module>hcp-common-datascope</module>
+        <!-- CHG-001 D3 剔除：hcp-common-datasource（去 Druid + dynamic-datasource，改 HikariCP）
 		<module>hcp-common-datasource</module>
+        -->
         <module>hcp-common-mybatisplus</module>
         <module>hcp-common-message</module>
     </modules>

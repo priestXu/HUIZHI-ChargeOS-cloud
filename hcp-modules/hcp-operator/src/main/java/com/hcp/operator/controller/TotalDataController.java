@@ -16,15 +16,15 @@ import com.hcp.operator.service.IChargingOrderService;
 import com.hcp.operator.service.IChargingPileService;
 import com.hcp.system.api.domain.SysDept;
 import com.hcp.system.api.domain.SysUser;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public class TotalDataController {
 
 
 
-    @ApiOperation("经营管理-销售统计")
+    @Operation(summary = "经营管理-销售统计")
     @PostMapping("/getManageTotalData")
     @ResponseBody
     public AjaxResult getManageTotalData(@RequestBody QueryChargePileVo vo){
@@ -52,7 +52,7 @@ public class TotalDataController {
         return AjaxResult.success(managerTotalDataVO);
     }
 
-    @ApiOperation(value = "获取收益统计列表")
+    @Operation(summary = "获取收益统计列表")
     @PostMapping("/getChargeTotal")
     public AjaxResult getChargeTotal(@RequestBody QueryChargePileVo vo) {
         logger.info("获取收益统计列表: {}", JSONUtil.toJsonStr(vo));
@@ -62,7 +62,7 @@ public class TotalDataController {
     }
 
     @GetMapping("/getTotalUserList")
-    @ApiOperation("获取数据权限下用户")
+    @Operation(summary = "获取数据权限下用户")
     public AjaxResult getTotalUserList() {
 
         return AjaxResult.success();

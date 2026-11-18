@@ -33,3 +33,8 @@ logs
 hcp-mini/node_modules/
 hcp-mini/unpackage/
 
+/AGENTS.md
+/GEMINI.md
+graphify-out/
+__pycache__/
+*.pyc

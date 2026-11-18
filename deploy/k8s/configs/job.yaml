@@ -1,0 +1,153 @@
+spring:
+  mail:
+    host: www.163.com
+    username: xxxxxx@163.com
+    password: xxxxxx
+    port: 25
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          ssl:
+            enable: true
+          socketFactoryClass: javax.net.ssl.SSLSocketFactory
+          auth: false
+          starttls:
+            enable: false
+            required: false
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+        debug: true
+    from: xxxxxx@163.com
+  cloud:
+    openfeign:
+      sentinel:
+        enabled: true
+      okhttp:
+        enabled: true
+      httpclient:
+        enabled: false
+      client:
+        config:
+          default:
+            connectTimeout: 10000
+            readTimeout: 10000
+          vctgo-job:
+            connectTimeout: 100000
+            readTimeout: 100000
+      compression:
+        request:
+          enabled: true
+        response:
+          enabled: true
+    nacos:
+      config:
+        enabled: false
+      discovery:
+        server-addr: ${NACOS_HOST:127.0.0.1}:${NACOS_PORT:8848}
+        namespace: hcp
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.20.186:3306/hcp_cloud?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8
+    username: root
+    password: 9sjTIw3TiL3RWOWB
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  data:
+    redis:
+      host: 192.168.20.176
+      port: 16379
+      database: 122
+      password: '1234567890'
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-wait: 500ms
+          max-idle: 10
+          min-idle: 2
+  jackson:
+    time-zone: GMT+8
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+logging:
+  level:
+    org.springframework: info
+    com.hcp: debug
+  file_basePath: ./logs
+  file_prefix: ${spring.application.name}
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+    banner: false
+    refresh-mapper: true
+    db-config:
+      id-type: auto
+      table-underline: true
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+  type-handlers-package: com.hcp.common.mybatisplus
+hcp:
+  tenant:
+    ignore-tables:
+    - sys_config
+    - gen_table
+    - gen_table_column
+    - sys_dict_data
+    - sys_dict_type
+    - sys_menu
+    - sys_tenant
+    - sys_tenant_package
+    - sys_oper_log
+    - sys_logininfor
+    - branch_table
+    - global_table
+    - lock_table
+    - undo_log
+    - xxl_job_group
+    - xxl_job_info
+    - xxl_job_lock
+    - xxl_job_log
+    - xxl_job_log_report
+    - xxl_job_logglue
+    - xxl_job_registry
+    - xxl_job_user
+    - c_city
+aliyun:
+  endpoint: cn-shanghai
+  accessKeyId: null
+  accessKeySecret: null
+  signName: null
+  templateCode: null
+file:
+  domain: http://127.0.0.1:39300
+  path: /home/upload
+  prefix: /documents
+swagger:
+  title: 定时任务接口文档
+  license: Powered By hcp
+  licenseUrl: https://hcp.cn
+xxl:
+  job:
+    accessToken: default_token
+    i18n: zh_CN
+    logretentiondays: 30
+    triggerpool:
+      fast:
+        max: 200
+      slow:
+        max: 100
+custom:
+  log:
+    list:
+    - scheduleJobQuery-error
+    - findFailJobLogIds-error
+    - findByAddressType-error

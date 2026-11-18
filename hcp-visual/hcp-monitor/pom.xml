@@ -16,6 +16,12 @@
 
     <dependencies>
 
+        <!-- CHG-001 T01-5（A4）：显式声明 web starter，不再依赖 hcp-common-swagger 传递 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
         <!-- SpringCloud Alibaba Nacos -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
@@ -41,12 +47,6 @@
         </dependency>
 
         <!-- Swagger UI -->
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-swagger-ui</artifactId>
-            <version>${swagger.fox.version}</version>
-        </dependency>
-
         <!-- Mysql Connector -->
         <dependency>
             <groupId>com.mysql</groupId>
@@ -89,11 +89,6 @@
         </dependency>
         <dependency>
             <groupId>com.zkhz</groupId>
-            <artifactId>hcp-common-datascope</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.zkhz</groupId>
             <artifactId>hcp-common-message</artifactId>
         </dependency>
 
@@ -105,7 +100,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.3.3.RELEASE</version>
                 <executions>
                     <execution>
                         <goals>

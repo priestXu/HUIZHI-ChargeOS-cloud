@@ -1,7 +1,7 @@
 package com.hcp.operator;
 
-import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
 import com.hcp.common.security.annotation.EnableCustomConfig;
+import com.hcp.common.swagger.annotation.EnableCustomSwagger2;
 import com.hcp.common.security.annotation.EnableHcpFeignClients;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @Slf4j
 @EnableCustomConfig
-@EnableKnife4j
+@EnableCustomSwagger2
 @EnableHcpFeignClients
 @SpringBootApplication
 @EnableScheduling

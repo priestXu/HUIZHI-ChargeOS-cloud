@@ -1,0 +1,13 @@
+hcp-register/src/main/resources/static/
+doc/
+docs/
+docker/**/readme.txt
+sql/hcp_cloud2.sql
+*.exe
+*.ini
+*.log
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg

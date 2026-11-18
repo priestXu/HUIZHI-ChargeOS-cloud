@@ -77,37 +77,55 @@ public class LogLevelChangeConfig implements ApplicationRunner {
             logger.warn("SQL:--->[{}] is not exist!",name);
             return;
         }
-        Slf4jImpl slf4jLog = (Slf4jImpl)mappedStatement.getStatementLog();
+        Slf4jImpl slf4jLog = (Slf4jImpl) mappedStatement.getStatementLog();
+        // CHG-001 T04-7：原实现反射 logback 私有字段 effectiveLevelInt，在 Spring Boot 3
+        // (slf4j 2 + logback 1.4) 下字段链已变，必然失败且被静默吞掉。
+        // 改为取 mybatis 持有的 slf4j Logger，若为 logback 实现则走公有 setLevel。
         try {
-            Field log = slf4jLog.getClass().getDeclaredField("log");
-            log.setAccessible(true);
-            Object slfLocation =log.get(slf4jLog);
-            Field logger = slfLocation.getClass().getDeclaredField("logger");
-            logger.setAccessible(true);
-            Object loggerObj = logger.get(slfLocation);
-            Field effectiveLevelInt = loggerObj.getClass().getDeclaredField("effectiveLevelInt");
-            effectiveLevelInt.setAccessible(true);
-            int level = getLevelInt(logLevel);
-            effectiveLevelInt.setInt(loggerObj , level);
-            LogLevelChangeConfig.logger.info("SQL log level setting successful!");
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
+            Field logField = slf4jLog.getClass().getDeclaredField("log");
+            logField.setAccessible(true);
+            Object logObj = logField.get(slf4jLog);
+            if (logObj instanceof ch.qos.logback.classic.Logger) {
+                ((ch.qos.logback.classic.Logger) logObj).setLevel(toLevel(logLevel));
+                LogLevelChangeConfig.logger.info("SQL[{}] 日志级别已设置为 {}", name, logLevel);
+            } else {
+                LogLevelChangeConfig.logger.warn(
+                        "SQL[{}] 日志级别未设置：当前 slf4j 实现不是 logback（实际 {}），该功能不可用，"
+                                + "SQL 日志保持默认级别", name,
+                        logObj == null ? "null" : logObj.getClass().getName());
+            }
+        } catch (NoSuchFieldException | IllegalAccessException | RuntimeException e) {
+            LogLevelChangeConfig.logger.warn(
+                    "SQL[{}] 日志级别未设置，该功能不可用，SQL 日志保持默认级别。原因：{}: {}",
+                    name, e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
-    private int getLevelInt(String logLevel) {
-        int level = 10000;
-        if("off".compareToIgnoreCase(logLevel)==0){
-            level = Level.OFF_INT;
-        }else if("error".compareToIgnoreCase(logLevel)==0){
-            level=Level.ERROR_INT;
-        }else if("warn".compareToIgnoreCase(logLevel)==0){
-            level=Level.WARN_INT;
-        }else if("trace".compareToIgnoreCase(logLevel)==0){
-            level=Level.TRACE_INT;
+    /**
+     * 把配置里的级别字符串转成 logback Level。
+     * 未知取值回退 TRACE，与原有 getLevelInt 的默认值(10000)保持一致。
+     */
+    private Level toLevel(String logLevel) {
+        if (logLevel == null) {
+            return Level.TRACE;
         }
-        return level;
+        switch (logLevel.toLowerCase()) {
+            case "off":
+                return Level.OFF;
+            case "error":
+                return Level.ERROR;
+            case "warn":
+                return Level.WARN;
+            case "debug":
+                return Level.DEBUG;
+            case "info":
+                return Level.INFO;
+            case "trace":
+            default:
+                return Level.TRACE;
+        }
     }
+
 
 
 

@@ -1,5 +1,5 @@
 # 基础镜像
-FROM  openjdk:8-jre
+FROM  eclipse-temurin:17-jre
 # author
 MAINTAINER hcp
 
@@ -12,4 +12,4 @@ WORKDIR /home/hcp
 # 复制jar文件到路径
 COPY ./jar/hcp-file.jar /home/hcp/hcp-file.jar
 # 启动文件服务
-ENTRYPOINT ["java","-jar","hcp-file.jar"]
+ENTRYPOINT ["java","-Djava.awt.headless=true","-jar","hcp-file.jar"]

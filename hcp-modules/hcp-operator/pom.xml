@@ -15,8 +15,6 @@
         hcp-operator 运营端模块
     </description>
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
@@ -58,10 +56,10 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
-        <!-- hcp Common DataSource -->
+        <!-- CHG-001 D3：去 Druid/dynamic-datasource，改 Spring Boot 默认 HikariCP -->
         <dependency>
-            <groupId>com.zkhz</groupId>
-            <artifactId>hcp-common-datasource</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
 
         <!-- hcp Common DataScope -->
@@ -76,11 +74,11 @@
             <artifactId>hcp-common-log</artifactId>
         </dependency>
 
-        <!-- hcp Common Swagger -->
-<!--        <dependency>-->
-<!--            <groupId>com.zkhz</groupId>-->
-<!--            <artifactId>hcp-common-swagger</artifactId>-->
-<!--        </dependency>-->
+        <!-- hcp Common Swagger（CHG-001 T03-1：改用 @EnableCustomSwagger2 统一 OpenAPI3 配置） -->
+        <dependency>
+            <groupId>com.zkhz</groupId>
+            <artifactId>hcp-common-swagger</artifactId>
+        </dependency>
 
         <!-- hcp Common tenant -->
         <dependency>
@@ -95,8 +93,7 @@
 
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
-            <version>4.4.0</version>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -110,7 +107,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.3.3.RELEASE</version>
                 <executions>
                     <execution>
                         <goals>

@@ -16,6 +16,12 @@
 
     <dependencies>
 
+        <!-- CHG-001 T03-1：springfox 移除后 aspectj 不再传递提供，@Aspect 切面需显式声明 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework</groupId>

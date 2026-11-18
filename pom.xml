@@ -19,8 +19,12 @@
         <module>hcp-modules</module>
         <module>hcp-api</module>
         <module>hcp-common</module>
+        <!-- CHG-001 T00-3 剔除：hcp-demo（生产不启动，随 CHG-002 一并下线）
         <module>hcp-demo</module>
+        -->
+        <!-- CHG-001 D2 剔除：hcp-register（内置 Nacos，改用官方独立 Nacos 2.3+）
         <module>hcp-register</module>
+        -->
     </modules>
     <repositories>
         <repository>
@@ -40,29 +44,24 @@
         <hcp.version>1.2.2</hcp.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>1.8</java.version>
-        <spring-boot.version>2.7.18</spring-boot.version>
-        <spring-cloud.version>2021.0.8</spring-cloud.version>
-        <spring-cloud-alibaba.version>2021.0.5.0</spring-cloud-alibaba.version>
-        <alibaba.nacos.version>2.1.1</alibaba.nacos.version>
-        <spring-boot-admin.version>2.7.10</spring-boot-admin.version>
-        <spring-boot.mybatis.plus>3.5.7</spring-boot.mybatis.plus>
-        <swagger.fox.version>3.0.0</swagger.fox.version>
-        <swagger.core.version>1.6.2</swagger.core.version>
+        <java.version>17</java.version>
+        <spring-boot.version>3.3.11</spring-boot.version>
+        <spring-cloud.version>2023.0.5</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.3.2</spring-cloud-alibaba.version>
+        <alibaba.nacos.version>2.3.2</alibaba.nacos.version>
+        <spring-boot.mybatis.plus>3.5.9</spring-boot.mybatis.plus>
+        <knife4j.version>4.5.0</knife4j.version>
         <tobato.version>1.27.2</tobato.version>
         <hutool.version>5.8.31</hutool.version>
         <kaptcha.version>2.3.3</kaptcha.version>
         <pagehelper.boot.version>1.4.7</pagehelper.boot.version>
-        <alibaba.seata.version>1.5.1</alibaba.seata.version>
-        <druid.version>1.2.16</druid.version>
-        <dynamic-ds.version>3.5.2</dynamic-ds.version>
         <commons.io.version>2.13.0</commons.io.version>
         <velocity.version>2.3</velocity.version>
         <fastjson.version>2.0.43</fastjson.version>
-        <jjwt.version>0.9.1</jjwt.version>
-        <poi.version>4.1.2</poi.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <poi.version>5.2.5</poi.version>
         <transmittable-thread-local.version>2.14.4</transmittable-thread-local.version>
-        <lombok.version>1.18.22</lombok.version>
+        <lombok.version>1.18.34</lombok.version>
         <oshi.version>6.1.2</oshi.version>
         <ganymed-ssh2.version>build250</ganymed-ssh2.version>
         <jsch.version>0.1.55</jsch.version>
@@ -108,13 +107,6 @@
                 <version>${alibaba.nacos.version}</version>
             </dependency>
 
-            <!-- Alibaba Seata 配置 -->
-            <dependency>
-                <groupId>io.seata</groupId>
-                <artifactId>seata-spring-boot-starter</artifactId>
-                <version>${alibaba.seata.version}</version>
-            </dependency>
-
             <!-- SpringBoot 依赖配置 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -148,15 +140,21 @@
 
 
             <!-- Swagger 依赖配置 -->
+            <!-- CHG-001 T01-4：Swagger2 -> OpenAPI3 (jakarta) -->
             <dependency>
-                <groupId>io.swagger</groupId>
-                <artifactId>swagger-models</artifactId>
-                <version>${swagger.core.version}</version>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>2.2.22</version>
             </dependency>
             <dependency>
-                <groupId>io.swagger</groupId>
-                <artifactId>swagger-annotations</artifactId>
-                <version>${swagger.core.version}</version>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+                <version>${knife4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
+                <version>${knife4j.version}</version>
             </dependency>
 
             <!-- 验证码 -->
@@ -245,20 +243,6 @@
             <dependency>
                 <groupId>com.zkhz</groupId>
                 <artifactId>hcp-common-datascope</artifactId>
-                <version>${hcp.version}</version>
-            </dependency>
-
-            <!-- 多数据源 -->
-            <dependency>
-                <groupId>com.zkhz</groupId>
-                <artifactId>hcp-common-datasource</artifactId>
-                <version>${hcp.version}</version>
-            </dependency>
-
-            <!-- 分布式事务 -->
-            <dependency>
-                <groupId>com.zkhz</groupId>
-                <artifactId>hcp-common-seata</artifactId>
                 <version>${hcp.version}</version>
             </dependency>
 
@@ -394,7 +378,13 @@
         <!-- mybatis-plus 增强CRUD -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>${spring-boot.mybatis.plus}</version>
+        </dependency>
+        <!-- CHG-001 T04-2：MP 3.5.9 起 JSqlParser 插件独立成模块 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
             <version>${spring-boot.mybatis.plus}</version>
         </dependency>
 <!--        &lt;!&ndash; pagehelper 分页插件 &ndash;&gt;-->
@@ -421,13 +411,24 @@
             </resource>
         </resources>
         <plugins>
+            <!-- CHG-001 T05-3：Maven 默认 surefire 2.12.4 不支持 JUnit 5，会静默跑 0 个用例 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>
+                    <!-- CHG-003：本项目未使用 spring-boot-starter-parent，需显式开启 -parameters。
+                         Spring Framework 6.1 已移除字节码参数名回退，缺少该标志会导致
+                         @RequestParam/@PathVariable 省略 name 时启动/调用报错。 -->
+                    <parameters>true</parameters>
                 </configuration>
             </plugin>
         </plugins>

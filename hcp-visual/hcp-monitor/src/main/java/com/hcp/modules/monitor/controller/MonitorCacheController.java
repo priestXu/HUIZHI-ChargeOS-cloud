@@ -1,7 +1,7 @@
 package com.hcp.modules.monitor.controller;
 
 import java.util.*;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import com.hcp.common.core.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,9 +134,9 @@ public class MonitorCacheController extends BaseController
         RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(factory);
         redisTemplate.afterPropertiesSet();
-        Properties info = (Properties) redisTemplate.execute((RedisCallback<Object>) connection -> connection.info());
+        Properties info = (Properties) redisTemplate.execute((RedisCallback<Object>) connection -> connection.serverCommands().info());
         Properties commandStats = (Properties) redisTemplate.execute((RedisCallback<Object>) connection -> connection.info("commandstats"));
-        Object dbSize = redisTemplate.execute((RedisCallback<Object>) connection -> connection.dbSize());
+        Object dbSize = redisTemplate.execute((RedisCallback<Object>) connection -> connection.serverCommands().dbSize());
         factory.resetConnection();
         Map<String, Object> result = new HashMap<>(3);
         result.put("info", info);

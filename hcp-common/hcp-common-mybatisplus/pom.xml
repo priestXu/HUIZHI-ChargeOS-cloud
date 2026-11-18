@@ -23,5 +23,12 @@
             <artifactId>hcp-common-security</artifactId>
         </dependency>
 
+
+        <!-- CHG-001 T05-3（D8）：分页拦截器回归测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

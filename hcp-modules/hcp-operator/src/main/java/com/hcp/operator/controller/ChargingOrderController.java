@@ -1,8 +1,8 @@
 package com.hcp.operator.controller;
 
 import java.util.List;
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hcp.common.core.domain.R;
@@ -11,7 +11,7 @@ import com.hcp.operator.domain.City;
 import com.hcp.operator.service.IOrderLogService;
 import com.hcp.system.api.domain.OrderLog;
 import com.hcp.system.api.domain.SysUser;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.hcp.common.log.annotation.Log;
@@ -126,7 +126,7 @@ public class ChargingOrderController extends BaseController
         return toAjax(chargingOrderService.deleteChargingOrderByOrderIds(orderIds));
     }
 
-    @ApiOperation("根据订单编号获取订单日志")
+    @Operation(summary = "根据订单编号获取订单日志")
     @GetMapping("/queryOrderLogByOrderNumber")
     public R<List<OrderLog>> list(@RequestParam("orderNumber") String orderNumber)
     {

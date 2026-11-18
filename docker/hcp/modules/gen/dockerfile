@@ -1,5 +1,5 @@
 # 基础镜像
-FROM  openjdk:8-jre
+FROM  eclipse-temurin:17-jre
 # author
 MAINTAINER hcp
 
@@ -12,4 +12,4 @@ WORKDIR /home/hcp
 # 复制jar文件到路径
 COPY ./jar/hcp-gen.jar /home/hcp/hcp-gen.jar
 # 启动代码生成服务
-ENTRYPOINT ["java","-jar","hcp-gen.jar"]
+ENTRYPOINT ["java","-Djava.awt.headless=true","-jar","hcp-gen.jar"]

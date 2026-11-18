@@ -1,10 +1,13 @@
 # 基础镜像
-FROM  openjdk:8-jre
+FROM  eclipse-temurin:17-jre
 # author
 MAINTAINER hcp
 
 # 挂载目录
 VOLUME /home/hcp
+# CHG-001 T04-9：kaptcha 验证码依赖 AWT 绘制，最小 JRE 镜像需字体与 fontconfig
+RUN apt-get update && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 # 创建目录
 RUN mkdir -p /home/hcp
 # 指定路径
@@ -12,4 +15,4 @@ WORKDIR /home/hcp
 # 复制jar文件到路径
 COPY ./jar/hcp-gateway.jar /home/hcp/hcp-gateway.jar
 # 启动网关服务
-ENTRYPOINT ["java","-jar","hcp-gateway.jar"]
+ENTRYPOINT ["java","-Djava.awt.headless=true","-jar","hcp-gateway.jar"]
